@@ -5,6 +5,15 @@
 What the project uses:
 - SDL3 (core library)
 - SDL3_image (loading PNG/JPG images)
+- ImGui (immediate mode GUI library; sources included in `external/imgui`)
+
+> **Note:** ImGui sources are included in this repository under `external/imgui`. You do not need to install ImGui separately or use a package manager for it.
+
+Important files:
+- `CMakeLists.txt` (project build configuration)
+- `src/` (source code)
+- `assets/` (image assets)
+- `external/` (external dependencies, e.g. ImGui)
 
 ---
 

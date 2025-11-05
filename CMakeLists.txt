@@ -7,12 +7,27 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(SDL3 REQUIRED)
 find_package(SDL3_image REQUIRED)
 
+add_library(imgui
+        external/imgui/imgui.cpp
+        external/imgui/imgui_draw.cpp
+        external/imgui/imgui_widgets.cpp
+        external/imgui/imgui_tables.cpp
+        external/imgui/imgui_demo.cpp
+        external/imgui/backends/imgui_impl_sdl3.cpp
+        external/imgui/backends/imgui_impl_opengl3.cpp
+)
+
+target_include_directories(imgui PUBLIC
+    external/imgui
+    external/imgui/backends
+)
+
 add_executable(DataOrientedDesignInGameDev
         src/main.cpp
 )
 
-target_link_libraries(DataOrientedDesignInGameDev
-        PRIVATE
-        SDL3::SDL3
-        SDL3_image::SDL3_image
+target_link_libraries(DataOrientedDesignInGameDev PRIVATE
+    imgui
+    SDL3::SDL3
+    SDL3_image::SDL3_image
 )
