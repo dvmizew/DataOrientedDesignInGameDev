@@ -2,12 +2,46 @@
 
 ---
 
+### Quick Start: Clone, Build & Run
+
+Clone the repository (with submodules):
+
+```bash
+git clone --recursive https://github.com/<your-username>/DataOrientedDesignInGameDev.git
+cd DataOrientedDesignInGameDev
+```
+
+If you already cloned without --recursive, initialize submodules:
+
+```bash
+git submodule update --init --recursive
+```
+
+Build and run (example for Linux):
+
+```bash
+mkdir -p build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . -- -j$(nproc)
+./DataOrientedDesignInGameDev
+```
+
+For other platforms (macOS, Windows), see the detailed instructions below.
+
+---
+
+**ImGui as a git submodule**
+
+ImGui is included as a git submodule in this project (under `external/imgui`). Make sure you have initialized and updated submodules before building. If the submodule is missing, see the Quick Start section above.
+
+---
+
 What the project uses:
 - SDL3 (core library)
 - SDL3_image (loading PNG/JPG images)
-- ImGui (immediate mode GUI library; sources included in `external/imgui`)
+- ImGui (immediate mode GUI library; included as a git submodule in `external/imgui`)
 
-> **Note:** ImGui sources are included in this repository under `external/imgui`. You do not need to install ImGui separately or use a package manager for it.
+> **Note:** ImGui is included as a git submodule under `external/imgui`. You do not need to install ImGui separately or use a package manager for it, but you must initialize the submodule as shown above.
 
 Important files:
 - `CMakeLists.txt` (project build configuration)
