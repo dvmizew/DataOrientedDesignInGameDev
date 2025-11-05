@@ -106,9 +106,9 @@ int main(int argc, char* argv[]) {
 
         // update la pozitia draganului
         dragan.x += dragan.vx * dt;
-        dragan.y = dragan.vy * dt;
+        dragan.y += dragan.vy * dt;
 
-        // il lovim pe dragan cu marginile ecranului
+        // il lovim pe dragan de marginile ecranului
         bool collided = false;
         if (dragan.x <= 0.0f)
         {
@@ -116,16 +116,16 @@ int main(int argc, char* argv[]) {
             dragan.vx = fabsf(dragan.vx); // inversez
             collided = true;
         }
-        if (dragan.x + dragan.w >= SCREEN_WIDTH)
+        if (dragan.y <= 0)
         {
-            dragan.x = SCREEN_WIDTH - dragan.x;
-            dragan.vx = -fabsf(dragan.vx); // inversez pe x
+            dragan.y = 0.0f;
+            dragan.vy = fabsf(dragan.vy);
             collided = true;
         }
-        if (dragan.y + dragan.h >= SCREEN_HEIGHT)
+        if (dragan.x + dragan.w >= SCREEN_WIDTH)
         {
-            dragan.y = SCREEN_WIDTH - dragan.y;
-            dragan.vy = fabsf(dragan.vy); // inversez pe y
+            dragan.x = SCREEN_WIDTH - dragan.w;
+            dragan.vx = -fabsf(dragan.vx); // inversez pe x
             collided = true;
         }
         if (dragan.y + dragan.h >= SCREEN_HEIGHT)
@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
 
         SDL_RenderPresent(renderer);
 
-        SDL_Delay(1);
+        SDL_Delay(16);
     }
 
     SDL_DestroyTexture(texture);
