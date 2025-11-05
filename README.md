@@ -7,7 +7,7 @@
 Clone the repository (with submodules):
 
 ```bash
-git clone --recursive https://github.com/<your-username>/DataOrientedDesignInGameDev.git
+git clone --recursive https://github.com/dvmizew/DataOrientedDesignInGameDev.git
 cd DataOrientedDesignInGameDev
 ```
 
