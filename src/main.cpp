@@ -1,14 +1,17 @@
 #include <iostream>
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <random>
 #include <cstring>
+#include <fstream>
+#include <unistd.h> // for memory profiling on linux
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
-
 #define DRAGAN_W (SCREEN_WIDTH / 2)
 #define DRAGAN_H (SCREEN_HEIGHT / 2)
+#define FPS_SAMPLES 100
 
 struct Spirite
 {
@@ -24,10 +27,55 @@ static float rand_float(float a, float b)
     return dist(rng);
 }
 
+float fps = 0.0f;
+float avg_fps = 0.0f;
+float frame_time_ms = 0.0f;
+float fps_samples[FPS_SAMPLES] = {0};
+int fps_index = 0;
+
+TTF_Font* font = nullptr;
+void drawText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, unsigned int text_len, int x, int y, SDL_Color color)
+{
+    SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), text_len, color);
+    if (!surface) return;
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FRect dst = {(float)x, (float)y, (float)surface->w, (float)surface->h};
+
+    SDL_RenderTexture(renderer, texture, nullptr, &dst);
+
+    SDL_DestroyTexture(texture);
+    SDL_DestroySurface(surface);
+}
+
+float getMemoryUsage()
+{
+    std::ifstream statm("/proc/self/statm"); // the linux way
+    long size = 0, resident = 0;
+    if (statm >> size >> resident)
+    {
+        long page_size_kb = __sysconf(_SC_PAGE_SIZE) / 1024; // KB
+        return (resident * page_size_kb) / 1024.0f;
+    }
+    return -1;
+}
+
 int main(int argc, char* argv[]) {
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
+        return 1;
+    }
+    if (!TTF_Init())
+    {
+        std::cerr << "TTF_Init failed: " << SDL_GetError() << std::endl;
+        return 1;
+    }
+
+    font = TTF_OpenFont("../assets/fonts/Roboto.ttf", 20);
+    if (!font)
+    {
+        std::cerr << "Font couldn't be loaded: " << SDL_GetError() << std::endl;
         return 1;
     }
 
@@ -35,7 +83,6 @@ int main(int argc, char* argv[]) {
         "Dragan Mihaita 204 - Screensaver",
         SCREEN_WIDTH, SCREEN_HEIGHT,
         0);
-
     if (!window)
     {
         std::cerr << "Window couldn't be created: " << SDL_GetError() << std::endl;
@@ -52,7 +99,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    const std::string spirite_path = "../assets/dragan.png";
+    const std::string spirite_path = "../assets/img/dragan.png";
     SDL_Texture* texture = IMG_LoadTexture(renderer, spirite_path.c_str());
     if (!texture)
     {
@@ -63,7 +110,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    Spirite dragan;
+    Spirite dragan{};
     dragan.w = static_cast<float>(DRAGAN_W);
     dragan.h = static_cast<float>(DRAGAN_H);
 
@@ -104,6 +151,21 @@ int main(int argc, char* argv[]) {
         float dt = static_cast<float>(now - last) / static_cast<float>(freq);
         last = now;
 
+        // calcul FPS
+        fps = 1.0f / dt;
+        frame_time_ms = dt * 1000.0f;
+        fps_samples[fps_index] = fps;
+        fps_index = (fps_index + 1) % FPS_SAMPLES;
+
+        // calcul avg
+        float sum = 0.0f;
+        for (float fps_sample : fps_samples)
+            sum += fps_sample;
+        avg_fps = sum / FPS_SAMPLES;
+
+        // calcul utilizare memorie
+        float mem_usage_mb = getMemoryUsage();
+
         // update la pozitia draganului
         dragan.x += dragan.vx * dt;
         dragan.y += dragan.vy * dt;
@@ -135,20 +197,32 @@ int main(int argc, char* argv[]) {
             collided = true;
         }
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // black background
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        SDL_FRect dst{dragan.x, dragan.y, dragan.w, dragan.h}; // sprite zone
+        // dragan
+        SDL_FRect dst{dragan.x, dragan.y, dragan.w, dragan.h};
         SDL_RenderTexture(renderer, texture, nullptr, &dst);
 
-        SDL_RenderPresent(renderer);
+        // text
+        SDL_Color white = {255, 255, 255, 255};
+        char line1[64], line2[64], line3[64];
+        snprintf(line1, sizeof(line1), "FPS: %.2f", avg_fps);
+        snprintf(line2, sizeof(line2), "Frame time: %.3f ms", frame_time_ms);
+        snprintf(line3, sizeof(line3), "Memory: %.2f MB", mem_usage_mb);
+        drawText(renderer, font, line1, strlen(line1), 10, 10, white);
+        drawText(renderer, font, line2, strlen(line2), 10, 40, white);
+        drawText(renderer, font, line3, strlen(line3), 10, 70, white);
 
-        SDL_Delay(16);
+        SDL_RenderPresent(renderer);
+        // SDL_Delay(16); // pentru FPS limit
     }
 
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    TTF_CloseFont(font);
+    TTF_Quit();
     SDL_Quit();
     return 0;
 }
