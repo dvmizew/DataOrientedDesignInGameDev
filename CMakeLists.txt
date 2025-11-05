@@ -2,12 +2,17 @@ cmake_minimum_required(VERSION 3.10)
 project(DataOrientedDesignInGameDev)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(SDL2 REQUIRED sdl3)
+find_package(SDL3 REQUIRED)
+find_package(SDL3_image REQUIRED)
 
-include_directories(${SDL2_INCLUDE_DIRS})
-link_directories(${SDL2_LIBRARY_DIRS})
+add_executable(DataOrientedDesignInGameDev
+        src/main.cpp
+)
 
-add_executable(sdl_test main.cpp)
-target_link_libraries(sdl_test ${SDL2_LIBRARIES})
+target_link_libraries(DataOrientedDesignInGameDev
+        PRIVATE
+        SDL3::SDL3
+        SDL3_image::SDL3_image
+)
