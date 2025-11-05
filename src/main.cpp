@@ -5,7 +5,13 @@
 #include <random>
 #include <cstring>
 #include <fstream>
-#include <unistd.h> // for memory profiling on linux
+// for performance monitor
+#ifdef _WIN32
+#include <windows.h>
+#include <psapi.h>
+#else
+#include <unistd.h>
+#endif
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
@@ -18,6 +24,57 @@ struct Spirite
     float x, y;
     float w, h;
     float vx, vy;
+};
+
+struct Text
+{
+    SDL_Texture* texture = nullptr;
+    int w = 0, h = 0;
+    static constexpr size_t MAX_TEXT = 128;
+    char last_text_buffer[MAX_TEXT] = {0};
+
+    void update(SDL_Renderer* renderer, TTF_Font* font, const char* text, size_t text_len, SDL_Color color)
+    {
+        if (!text || text_len == 0)
+            return;
+
+        if (text_len >= MAX_TEXT)
+            text_len = MAX_TEXT - 1;
+
+        if (std::memcmp(last_text_buffer, text, text_len) == 0 && last_text_buffer[text_len] == '\0')
+            return;
+
+        std::memcpy(last_text_buffer, text, text_len);
+        last_text_buffer[text_len] = '\0';
+
+        if (texture)
+            SDL_DestroyTexture(texture);
+
+        SDL_Surface* surface = TTF_RenderText_Solid(font, text, text_len, color);
+        if (!surface)
+        {
+            texture = nullptr;
+            w = h = 0;
+            return;
+        }
+
+        texture = SDL_CreateTextureFromSurface(renderer, surface);
+        w = surface->w;
+        h = surface->h;
+        SDL_DestroySurface(surface);
+    }
+
+    void draw(SDL_Renderer* renderer, int x, int y)
+    {
+        if (!texture)
+            return;
+        SDL_FRect dst{float(x), float(y), float(w), float(h)};
+        SDL_RenderTexture(renderer, texture, nullptr, &dst);
+    }
+    ~Text()
+    {
+        if (texture) SDL_DestroyTexture(texture);
+    }
 };
 
 static float rand_float(float a, float b)
@@ -34,22 +91,18 @@ float fps_samples[FPS_SAMPLES] = {0};
 int fps_index = 0;
 
 TTF_Font* font = nullptr;
-void drawText(SDL_Renderer* renderer, TTF_Font* font, const std::string& text, unsigned int text_len, int x, int y, SDL_Color color)
-{
-    SDL_Surface* surface = TTF_RenderText_Solid(font, text.c_str(), text_len, color);
-    if (!surface) return;
-
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_FRect dst = {(float)x, (float)y, (float)surface->w, (float)surface->h};
-
-    SDL_RenderTexture(renderer, texture, nullptr, &dst);
-
-    SDL_DestroyTexture(texture);
-    SDL_DestroySurface(surface);
-}
 
 float getMemoryUsage()
 {
+#ifdef _WIN32
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
+    {
+        return static_cast<float>(pmc.WorkingSetSize) / (1024.0f * 1024.0f);
+    }
+    return -1.0f;
+#else
+
     std::ifstream statm("/proc/self/statm"); // the linux way
     long size = 0, resident = 0;
     if (statm >> size >> resident)
@@ -58,6 +111,7 @@ float getMemoryUsage()
         return (resident * page_size_kb) / 1024.0f;
     }
     return -1;
+#endif
 }
 
 int main(int argc, char* argv[]) {
@@ -137,6 +191,12 @@ int main(int argc, char* argv[]) {
     uint64_t freq = SDL_GetPerformanceFrequency();
     uint64_t last = SDL_GetPerformanceCounter();
 
+    SDL_Color white = {255, 255, 255, 255};
+    char line1[64], line2[64], line3[64];
+    Text fps_text;
+    Text frame_text;
+    Text mem_text;
+
     while (running)
     {
         while (SDL_PollEvent(&e))
@@ -205,17 +265,20 @@ int main(int argc, char* argv[]) {
         SDL_RenderTexture(renderer, texture, nullptr, &dst);
 
         // text
-        SDL_Color white = {255, 255, 255, 255};
-        char line1[64], line2[64], line3[64];
         snprintf(line1, sizeof(line1), "FPS: %.2f", avg_fps);
         snprintf(line2, sizeof(line2), "Frame time: %.3f ms", frame_time_ms);
         snprintf(line3, sizeof(line3), "Memory: %.2f MB", mem_usage_mb);
-        drawText(renderer, font, line1, strlen(line1), 10, 10, white);
-        drawText(renderer, font, line2, strlen(line2), 10, 40, white);
-        drawText(renderer, font, line3, strlen(line3), 10, 70, white);
+
+        fps_text.update(renderer, font, line1, strlen(line1), white);
+        frame_text.update(renderer, font, line2, strlen(line2), white);
+        mem_text.update(renderer, font, line3, strlen(line3), white);
+
+        fps_text.draw(renderer, 10, 10);
+        frame_text.draw(renderer, 10, 40);
+        mem_text.draw(renderer, 10, 70);
 
         SDL_RenderPresent(renderer);
-        // SDL_Delay(16); // pentru FPS limit
+        // SDL_Delay(8); // pentru FPS limit
     }
 
     SDL_DestroyTexture(texture);
