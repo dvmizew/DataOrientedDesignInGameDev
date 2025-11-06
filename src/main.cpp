@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
     dragan.y = rand_float(0.0f, SCREEN_HEIGHT - dragan.h);
 
     float speed = 300.0f; // speed in pixels / second
-    float angle = rand_float(0.0f, 2.0f * (float)M_PI); // random direction like that DVD screensaver
+    float angle = rand_float(0.0f, 2.0f * static_cast<float>(M_PI)); // random direction like that DVD screensaver
     dragan.vx = cosf(angle) * speed;
     dragan.vy = sinf(angle) * speed;
 
@@ -278,7 +278,7 @@ int main(int argc, char* argv[]) {
         mem_text.draw(renderer, 10, 70);
 
         SDL_RenderPresent(renderer);
-        // SDL_Delay(8); // pentru FPS limit
+        SDL_Delay(8); // pentru FPS limit
     }
 
     SDL_DestroyTexture(texture);
@@ -286,6 +286,9 @@ int main(int argc, char* argv[]) {
     SDL_DestroyWindow(window);
     TTF_CloseFont(font);
     TTF_Quit();
+    fps_text.~Text();
+    frame_text.~Text();
+    mem_text.~Text();
     SDL_Quit();
     return 0;
 }
