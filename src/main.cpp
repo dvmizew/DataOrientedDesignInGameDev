@@ -13,10 +13,10 @@
 #include <unistd.h>
 #endif
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
-#define DRAGAN_W (SCREEN_WIDTH / 2)
-#define DRAGAN_H (SCREEN_HEIGHT / 2)
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
+#define DRAGAN_W 500
+#define DRAGAN_H 450
 #define FPS_SAMPLES 100
 
 struct Spirite
@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
     dragan.y = rand_float(0.0f, SCREEN_HEIGHT - dragan.h);
 
     float speed = 300.0f; // speed in pixels / second
-    float angle = rand_float(0.0f, 2.0f * M_PIf); // random direction like that DVD screensaver
+    float angle = rand_float(0.0f, 2.0f * (float)M_PIf); // random direction like that DVD screensaver
     dragan.vx = cosf(angle) * speed;
     dragan.vy = sinf(angle) * speed;
 
