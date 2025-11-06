@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
     dragan.y = rand_float(0.0f, SCREEN_HEIGHT - dragan.h);
 
     float speed = 300.0f; // speed in pixels / second
-    float angle = rand_float(0.0f, 2.0f * (float)M_PIf); // random direction like that DVD screensaver
+    float angle = rand_float(0.0f, 2.0f * (float)M_PI); // random direction like that DVD screensaver
     dragan.vx = cosf(angle) * speed;
     dragan.vy = sinf(angle) * speed;
 
