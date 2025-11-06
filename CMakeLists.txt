@@ -25,6 +25,8 @@ target_include_directories(imgui PUBLIC
 
 add_executable(DataOrientedDesignInGameDev
         src/main.cpp
+        lib/PerformanceMonitor.cpp
+        lib/PerformanceMonitor.h
 )
 
 target_link_libraries(DataOrientedDesignInGameDev PRIVATE
