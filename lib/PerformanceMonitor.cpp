@@ -26,7 +26,7 @@ static void updateText(SDL_Renderer* renderer, TTF_Font* font, Text* text, const
     SDL_DestroySurface(surface);
 }
 
-static void DrawText(SDL_Renderer* renderer, const Text* textObj, int x, int y)
+static void DrawText(SDL_Renderer* renderer, const Text* textObj, int x, const int y)
 {
     if (!textObj->texture) return;
     const SDL_FRect dst = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(textObj->w), static_cast<float>(textObj->h)};
@@ -55,7 +55,7 @@ void PerformanceMonitor_Init(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF
     pm->color = (SDL_Color){255, 255, 255, 255};
 }
 
-void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF_Font* font, size_t spirite_count)
+void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF_Font* font, size_t sprite_count)
 {
     const Uint64 now = SDL_GetPerformanceCounter();
     const double dt = static_cast<double>(now - pm->last_counter) / static_cast<double>(pm->freq);
@@ -71,17 +71,17 @@ void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, T
     pm->avg_fps = sum / FPS_SAMPLES;
     pm->frame_time_ms = static_cast<float>(dt * 1000.0);
 
-    char fps_line[64], frame_line[64], mem_line[64], spirite_line[64];
+    char fps_line[64], frame_line[64], mem_line[64], sprite_line[64];
     snprintf(fps_line, sizeof(fps_line), "FPS: %.1f", pm->avg_fps);
     snprintf(frame_line, sizeof(frame_line), "Frame: %.3f ms", pm->frame_time_ms);
 
     const size_t mem_mb = getMemoryMB();
     snprintf(mem_line, sizeof(mem_line), "Memory: %zu MB", mem_mb);
-    snprintf(spirite_line, sizeof(spirite_line), "Spirites: %zu", spirite_count);
+    snprintf(sprite_line, sizeof(sprite_line), "Sprites: %zu", sprite_count);
     updateText(renderer, font, &pm->fps_text, fps_line, pm->color);
     updateText(renderer, font, &pm->frame_text, frame_line, pm->color);
     updateText(renderer, font, &pm->mem_text, mem_line, pm->color);
-    updateText(renderer, font, &pm->spirite_count_text, spirite_line, pm->color);
+    updateText(renderer, font, &pm->sprite_count_text, sprite_line, pm->color);
 }
 
 void PerformanceMonitor_Draw(const PerformanceMonitor* pm, SDL_Renderer* renderer)
@@ -89,7 +89,7 @@ void PerformanceMonitor_Draw(const PerformanceMonitor* pm, SDL_Renderer* rendere
     DrawText(renderer, &pm->fps_text, 10, 10);
     DrawText(renderer, &pm->frame_text, 10, 40);
     DrawText(renderer, &pm->mem_text, 10, 70);
-    DrawText(renderer, &pm->spirite_count_text, 10,100);
+    DrawText(renderer, &pm->sprite_count_text, 10,100);
 }
 
 void PerformanceMonitor_Destroy(const PerformanceMonitor* pm)
@@ -97,5 +97,5 @@ void PerformanceMonitor_Destroy(const PerformanceMonitor* pm)
     if (pm->fps_text.texture) SDL_DestroyTexture(pm->fps_text.texture);
     if (pm->frame_text.texture) SDL_DestroyTexture(pm->frame_text.texture);
     if (pm->mem_text.texture) SDL_DestroyTexture(pm->mem_text.texture);
-    if (pm->spirite_count_text.texture) SDL_DestroyTexture(pm->spirite_count_text.texture);
+    if (pm->sprite_count_text.texture) SDL_DestroyTexture(pm->sprite_count_text.texture);
 }
