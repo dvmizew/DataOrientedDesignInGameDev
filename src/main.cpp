@@ -2,22 +2,17 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
+#include <cmath>
 #include <random>
-#include <cstring>
-#include <fstream>
 #include "../lib/PerformanceMonitor.h"
+#include "../lib/SpriteOOP.h"
+#include "../lib/SpriteDOD.h"
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
-#define DRAGAN_W (SCREEN_WIDTH / 50)
-#define DRAGAN_H (SCREEN_HEIGHT / 50)
+#define DRAGAN_W (SCREEN_WIDTH / 50.0f)
+#define DRAGAN_H (SCREEN_HEIGHT / 50.0f)
 
-struct Spirite
-{
-    float x, y;
-    float w, h;
-    float vx, vy;
-};
 
 static float rand_float(float a, float b)
 {
@@ -65,8 +60,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    const std::string spirite_path = "../assets/img/dragan.png";
-    SDL_Texture* texture = IMG_LoadTexture(renderer, spirite_path.c_str());
+    const std::string sprite_path = "../assets/img/dragan.png";
+    SDL_Texture* texture = IMG_LoadTexture(renderer, sprite_path.c_str());
     if (!texture)
     {
         std::cerr << "Texture error: " << SDL_GetError() << std::endl;
@@ -76,161 +71,116 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::vector<Spirite> spirites;
-    unsigned int spirites_count = 1000;
-    for (unsigned int i = 0; i < spirites_count; ++i)
+    constexpr int CELL_SIZE = DRAGAN_W * 2;
+    SpriteManagerOOP spriteOOP(SCREEN_WIDTH, SCREEN_HEIGHT, CELL_SIZE);
+    SpriteManagerDOD spriteDOD(SCREEN_WIDTH, SCREEN_HEIGHT, CELL_SIZE, DRAGAN_W, DRAGAN_H);
+
+    bool useOOP = true;
+
+    unsigned int initial_count = 1000;
+    for (unsigned int i = 0; i < initial_count; ++i)
     {
         float angle = rand_float(0.0f, 2.0f * static_cast<float>(M_PI));
         float speed = 300.0f;
-        spirites.push_back({
-            rand_float(0, SCREEN_WIDTH - DRAGAN_W),
-            rand_float(0, SCREEN_HEIGHT - DRAGAN_H),
-                DRAGAN_W, DRAGAN_H,
-                cosf(angle) * speed,
-                sinf(angle) * speed
-        });
+        float x = rand_float(0, SCREEN_WIDTH - DRAGAN_W);
+        float y = rand_float(0, SCREEN_HEIGHT - DRAGAN_H);
+        float vx = cosf(angle) * speed;
+        float vy = sinf(angle) * speed;
+
+        spriteOOP.addSprite(x, y, DRAGAN_W, DRAGAN_H, vx, vy);
+        spriteDOD.addSprite(x, y, vx, vy);
     }
 
     PerformanceMonitor perf;
     PerformanceMonitor_Init(&perf, renderer, font);
     bool running = true;
     SDL_Event e;
-
-    constexpr int CELL_SIZE = DRAGAN_W * 2;
-    int grid_w = (SCREEN_WIDTH + CELL_SIZE - 1) / CELL_SIZE;
-    int grid_h = (SCREEN_HEIGHT + CELL_SIZE - 1) / CELL_SIZE;
-
-    std::vector<std::vector<size_t>> grid(grid_w * grid_h);
+    Uint64 last_counter = SDL_GetPerformanceCounter();
     while (running)
     {
         while (SDL_PollEvent(&e))
         {
             if (e.type == SDL_EVENT_QUIT)
-            {
-                running = false;
-            }
-
-            if (e.type == SDL_EVENT_QUIT)
                 running = false;
 
             if (e.type == SDL_EVENT_KEY_DOWN)
             {
-                // UP key doubles the spirite on the screen
-                if (e.key.key == SDLK_UP && spirites.size() < 100000)
+                // UP key doubles the sprites on the screen
+                if (e.key.key == SDLK_UP)
                 {
-                    unsigned int new_count = spirites.size() * 2;
-                    new_count = (new_count > 100000) ? 100000 : new_count;
-
-                    for (unsigned int i = spirites.size(); i < new_count; ++i)
+                    if (useOOP && spriteOOP.getCount() < 100000)
                     {
-                        const float angle = rand_float(0.0f, 2.0f * static_cast<float>(M_PI));
-                        const float speed = 300.0f;
-                        spirites.push_back({
-                            rand_float(0, SCREEN_WIDTH - DRAGAN_W),
-                            rand_float(0, SCREEN_HEIGHT - DRAGAN_H),
-                            DRAGAN_W, DRAGAN_H,
-                            cosf(angle) * speed,
-                            sinf(angle) * speed
-                            });
+                        spriteOOP.doubleSprites(DRAGAN_W, DRAGAN_H);
+                        spriteDOD.clearSprites();
+                        for (unsigned int i = 0; i < spriteOOP.getCount(); ++i)
+                        {
+                            float angle = rand_float(0.0f, 2.0f * static_cast<float>(M_PI));
+                            float speed = 300.0f;
+                            spriteDOD.addSprite(
+                                rand_float(0, SCREEN_WIDTH - DRAGAN_W),
+                                rand_float(0, SCREEN_HEIGHT - DRAGAN_H),
+                                cosf(angle) * speed,
+                                sinf(angle) * speed
+                            );
+                        }
                     }
-                    // DOWN key reduces them in half
-                } else if (e.key.key == SDLK_DOWN && spirites.size() > 1)
-                    spirites.resize(spirites.size() / 2);
+                    else if (!useOOP && spriteDOD.getCount() < 100000)
+                    {
+                        spriteDOD.doubleSprites();
+                        spriteOOP.clearSprites();
+                        for (unsigned int i = 0; i < spriteDOD.getCount(); ++i)
+                        {
+                            float angle = rand_float(0.0f, 2.0f * static_cast<float>(M_PI));
+                            float speed = 300.0f;
+                            spriteOOP.addSprite(
+                                rand_float(0, SCREEN_WIDTH - DRAGAN_W),
+                                rand_float(0, SCREEN_HEIGHT - DRAGAN_H),
+                                DRAGAN_W, DRAGAN_H,
+                                cosf(angle) * speed,
+                                sinf(angle) * speed
+                            );
+                        }
+                    }
+                }
+                // DOWN key reduces them in half
+                else if (e.key.key == SDLK_DOWN)
+                {
+                    spriteOOP.halveSprites();
+                    spriteDOD.halveSprites();
+                }
+                // SPACE key toggles between OOP and DOD
+                else if (e.key.key == SDLK_SPACE)
+                {
+                    useOOP = !useOOP;
+                    std::cout << (useOOP ? "OOP" : "DOD") << std::endl;
+                }
+                // ESC key quits
+                else if (e.key.key == SDLK_ESCAPE)
+                {
+                    running = false;
+                }
             }
         }
-
-        static Uint64 last_counter = SDL_GetPerformanceCounter();
 
         Uint64 now = SDL_GetPerformanceCounter();
         float dt = static_cast<float>(now - last_counter) / static_cast<float>(SDL_GetPerformanceFrequency());
         last_counter = now;
 
-        for (auto& s: spirites)
-        {
-            s.x += s.vx * dt;
-            s.y += s.vy * dt;
+        if (useOOP)
+            spriteOOP.update(dt);
+        else
+            spriteDOD.update(dt);
 
-            // collisions
-            if (s.x <= 0.0f)
-            {
-                s.x = 0.0f;
-                s.vx = fabsf(s.vx);
-            }
-            if (s.y <= 0.0f)
-            {
-                s.y = 0.0f;
-                s.vy = fabsf(s.vy);
-            }
-            if (s.x + s.w >= SCREEN_WIDTH)
-            {
-                s.x = SCREEN_WIDTH - s.w;
-                s.vx = -fabsf(s.vx);
-            }
-            if (s.y + s.h >= SCREEN_HEIGHT)
-            {
-                s.y = SCREEN_HEIGHT - s.h;
-                s.vy = -fabsf(s.vy);
-            }
-        }
-
-        for (auto &cell : grid)
-            cell.clear();
-
-        // adding the spirits into the grid
-        size_t spirites_size = spirites.size();
-        for (size_t i = 0; i < spirites_size; ++i)
-        {
-            Spirite& s = spirites[i];
-            int x = s.x / CELL_SIZE;
-            int y = s.y / CELL_SIZE;
-            int index = y * grid_w + x;
-
-            if (index >= 0 && index < grid.size())
-                grid[index].push_back(i);
-        }
-
-        // spirite collision in the same grid
-        for (int y = 0; y < grid_h; ++y)
-        {
-            for (int x = 0; x < grid_w; ++x)
-            {
-                int index = y * grid_w + x;
-                auto& cell = grid[index];
-
-                size_t cell_size = cell.size();
-                for (size_t i = 0; i < cell_size; ++i)
-                {
-                    size_t a_index = cell[i];
-                    Spirite& a = spirites[a_index];
-
-                    for (size_t j = i + 1; j < cell_size; ++j)
-                    {
-                        size_t b_index = cell[j];
-                        Spirite &b = spirites[b_index];
-
-                        bool overlap =
-                            a.x < b.x + b.w &&
-                                a.x +a.w > b.x &&
-                                    a.y < b.y + b.h &&
-                                        a.y + a.h > b.y;
-
-                        if (overlap)
-                            std::swap(a.vx, b.vx), std::swap(a.vy, b.vy);
-                    }
-                }
-            }
-        }
-
-        PerformanceMonitor_Update(&perf, renderer, font, spirites.size());
+        size_t sprite_count = useOOP ? spriteOOP.getCount() : spriteDOD.getCount();
+        PerformanceMonitor_Update(&perf, renderer, font, sprite_count);
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        for (const auto &s : spirites)
-        {
-            SDL_FRect dst{s.x, s.y, s.w, s.h};
-            SDL_RenderTexture(renderer, texture, nullptr, &dst);
-        }
+        if (useOOP)
+            spriteOOP.render(renderer, texture);
+        else
+            spriteDOD.render(renderer, texture);
 
         PerformanceMonitor_Draw(&perf, renderer);
 
