@@ -139,7 +139,11 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        float dt = 1.0f / 60.0f;
+        static Uint64 last_counter = SDL_GetPerformanceCounter();
+
+        Uint64 now = SDL_GetPerformanceCounter();
+        float dt = static_cast<float>(now - last_counter) / static_cast<float>(SDL_GetPerformanceFrequency());
+        last_counter = now;
 
         for (auto& s: spirites)
         {
@@ -231,7 +235,6 @@ int main(int argc, char* argv[]) {
         PerformanceMonitor_Draw(&perf, renderer);
 
         SDL_RenderPresent(renderer);
-        SDL_Delay(8); // pentru FPS limit
     }
 
     PerformanceMonitor_Destroy(&perf);
