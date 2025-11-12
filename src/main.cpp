@@ -9,8 +9,8 @@
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
-#define DRAGAN_W (SCREEN_WIDTH / 6)
-#define DRAGAN_H (SCREEN_HEIGHT / 6)
+#define DRAGAN_W (SCREEN_WIDTH / 50)
+#define DRAGAN_H (SCREEN_HEIGHT / 50)
 
 struct Spirite
 {
@@ -75,19 +75,24 @@ int main(int argc, char* argv[]) {
         SDL_Quit();
         return 1;
     }
-    Spirite dragan{rand_float(0, SCREEN_WIDTH - DRAGAN_W),
-                    rand_float(0, SCREEN_HEIGHT - DRAGAN_H),
-                    DRAGAN_W, DRAGAN_H,
-                    200, 180};
+
+    std::vector<Spirite> spirites;
+    unsigned int spirites_count = 1000;
+    for (unsigned int i = 0; i < spirites_count; ++i)
+    {
+        float angle = rand_float(0.0f, 2.0f * static_cast<float>(M_PI));
+        float speed = 300.0f;
+        spirites.push_back({
+            rand_float(0, SCREEN_WIDTH - DRAGAN_W),
+            rand_float(0, SCREEN_HEIGHT - DRAGAN_H),
+                DRAGAN_W, DRAGAN_H,
+                cosf(angle) * speed,
+                sinf(angle) * speed
+        });
+    }
 
     PerformanceMonitor perf;
     PerformanceMonitor_Init(&perf, renderer, font);
-
-    float speed = 300.0f; // speed in pixels / second
-    float angle = rand_float(0.0f, 2.0f * static_cast<float>(M_PI)); // random direction like that DVD screensaver
-    dragan.vx = cosf(angle) * speed;
-    dragan.vy = sinf(angle) * speed;
-
     bool running = true;
     SDL_Event e;
 
@@ -99,47 +104,76 @@ int main(int argc, char* argv[]) {
             {
                 running = false;
             }
+
+            if (e.type == SDL_EVENT_QUIT)
+                running = false;
+
+            if (e.type == SDL_EVENT_KEY_DOWN)
+            {
+                // UP key doubles the spirite on the screen
+                if (e.key.key == SDLK_UP && spirites.size() < 100000)
+                {
+                    unsigned int new_count = spirites.size() * 2;
+                    new_count = (new_count > 100000) ? 100000 : new_count;
+
+                    for (unsigned int i = spirites.size(); i < new_count; ++i)
+                    {
+                        const float angle = rand_float(0.0f, 2.0f * static_cast<float>(M_PI));
+                        const float speed = 300.0f;
+                        spirites.push_back({
+                            rand_float(0, SCREEN_WIDTH - DRAGAN_W),
+                            rand_float(0, SCREEN_HEIGHT - DRAGAN_H),
+                            DRAGAN_W, DRAGAN_H,
+                            cosf(angle) * speed,
+                            sinf(angle) * speed
+                            });
+                    }
+                    // DOWN key reduces them in half
+                } else if (e.key.key == SDLK_DOWN && spirites.size() > 1)
+                    spirites.resize(spirites.size() / 2);
+            }
         }
 
-        // update la pozitia draganului
-        dragan.x += dragan.vx * (1.0f / 60.0f);
-        dragan.y += dragan.vy * (1.0f / 60.0f);
+        float dt = 1.0f / 60.0f;
 
-        // il lovim pe dragan de marginile ecranului
-        bool collided = false;
-        if (dragan.x <= 0.0f)
+        for (auto& s: spirites)
         {
-            dragan.x = 0.0f;
-            dragan.vx = fabsf(dragan.vx); // inversez
-            collided = true;
-        }
-        if (dragan.y <= 0)
-        {
-            dragan.y = 0.0f;
-            dragan.vy = fabsf(dragan.vy);
-            collided = true;
-        }
-        if (dragan.x + dragan.w >= SCREEN_WIDTH)
-        {
-            dragan.x = SCREEN_WIDTH - dragan.w;
-            dragan.vx = -fabsf(dragan.vx); // inversez pe x
-            collided = true;
-        }
-        if (dragan.y + dragan.h >= SCREEN_HEIGHT)
-        {
-            dragan.y = SCREEN_HEIGHT - dragan.h;
-            dragan.vy = -fabsf(dragan.vy);
-            collided = true;
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+
+            // collisions
+            if (s.x <= 0.0f)
+            {
+                s.x = 0.0f;
+                s.vx = fabsf(s.vx);
+            }
+            if (s.y <= 0.0f)
+            {
+                s.y = 0.0f;
+                s.vy = fabsf(s.vy);
+            }
+            if (s.x + s.w >= SCREEN_WIDTH)
+            {
+                s.x = SCREEN_WIDTH - s.w;
+                s.vx = -fabsf(s.vx);
+            }
+            if (s.y + s.h >= SCREEN_HEIGHT)
+            {
+                s.y = SCREEN_HEIGHT - s.h;
+                s.vy = -fabsf(s.vy);
+            }
         }
 
-        PerformanceMonitor_Update(&perf, renderer, font);
+        PerformanceMonitor_Update(&perf, renderer, font, spirites.size());
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        // dragan
-        SDL_FRect dst{dragan.x, dragan.y, dragan.w, dragan.h};
-        SDL_RenderTexture(renderer, texture, nullptr, &dst);
+        for (const auto &s : spirites)
+        {
+            SDL_FRect dst{s.x, s.y, s.w, s.h};
+            SDL_RenderTexture(renderer, texture, nullptr, &dst);
+        }
 
         PerformanceMonitor_Draw(&perf, renderer);
 

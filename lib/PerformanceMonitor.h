@@ -28,12 +28,13 @@ typedef struct
     Text fps_text;
     Text frame_text;
     Text mem_text;
+    Text spirite_count_text;
     SDL_Color color;
 }PerformanceMonitor;
 
 static void updateText(SDL_Renderer* renderer, TTF_Font* font, Text* text, const char* new_text, SDL_Color color);
 void PerformanceMonitor_Init(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF_Font* font);
-void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF_Font* font);
+void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF_Font* font, size_t spirite_count);
 void PerformanceMonitor_Draw(PerformanceMonitor* pm, SDL_Renderer* renderer);
 void PerformanceMonitor_Destroy(PerformanceMonitor* pm);
 
