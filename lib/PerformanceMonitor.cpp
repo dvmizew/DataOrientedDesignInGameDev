@@ -3,9 +3,8 @@
 //
 
 #include <iostream>
+#include <fstream>
 #include "PerformanceMonitor.h"
-
-#include "imgui_impl_opengl3_loader.h"
 
 static void updateText(SDL_Renderer* renderer, TTF_Font* font, Text* text, const char* new_text, SDL_Color color)
 {
@@ -27,11 +26,25 @@ static void updateText(SDL_Renderer* renderer, TTF_Font* font, Text* text, const
     SDL_DestroySurface(surface);
 }
 
-static void DrawText(SDL_Renderer* renderer, Text* textObj, int x, int y)
+static void DrawText(SDL_Renderer* renderer, const Text* textObj, int x, int y)
 {
     if (!textObj->texture) return;
-    SDL_FRect dst = {(float)x, (float)y, (float)textObj->w, (float)textObj->h};
+    const SDL_FRect dst = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(textObj->w), static_cast<float>(textObj->h)};
     SDL_RenderTexture(renderer, textObj->texture, nullptr, &dst);
+}
+
+size_t getMemoryMB()
+{
+#ifdef __linux__
+    std::ifstream status("/proc/self/status");
+    std::string line;
+    while (std::getline(status, line))
+    {
+        if (line.substr(0,6) == "VmRSS:")
+            return std::stoul(line.substr(6)) / 1024;
+    }
+#endif
+    return 0;
 }
 
 void PerformanceMonitor_Init(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF_Font* font)
@@ -44,16 +57,16 @@ void PerformanceMonitor_Init(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF
 
 void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF_Font* font, size_t spirite_count)
 {
-    Uint64 now = SDL_GetPerformanceCounter();
-    double dt = static_cast<double>(now - pm->last_counter) / static_cast<double>(pm->freq);
+    const Uint64 now = SDL_GetPerformanceCounter();
+    const double dt = static_cast<double>(now - pm->last_counter) / static_cast<double>(pm->freq);
     pm->last_counter = now;
 
-    float fps = (dt > 0.0) ? static_cast<float>(1.0 / dt) : 0.0f;
+    const float fps = (dt > 0.0) ? static_cast<float>(1.0 / dt) : 0.0f;
     pm->fps_samples[pm->fps_index] = fps;
     pm->fps_index = (pm->fps_index + 1) % FPS_SAMPLES;
 
     float sum = 0.0f;
-    for (float fps_sample : pm->fps_samples)
+    for (const float fps_sample : pm->fps_samples)
         sum += fps_sample;
     pm->avg_fps = sum / FPS_SAMPLES;
     pm->frame_time_ms = static_cast<float>(dt * 1000.0);
@@ -62,10 +75,8 @@ void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, T
     snprintf(fps_line, sizeof(fps_line), "FPS: %.1f", pm->avg_fps);
     snprintf(frame_line, sizeof(frame_line), "Frame: %.3f ms", pm->frame_time_ms);
 
-    SDL_PropertiesID props = SDL_GetGlobalProperties();
-    Uint64 texture_mem = SDL_GetNumberProperty(props, "SDL.video.texture_memory_usage", 0);
-    snprintf(mem_line, sizeof(mem_line), "Memory: %.2f MB", texture_mem / (1024.0f * 1024.0f));
-
+    const size_t mem_mb = getMemoryMB();
+    snprintf(mem_line, sizeof(mem_line), "Memory: %zu MB", mem_mb);
     snprintf(spirite_line, sizeof(spirite_line), "Spirites: %zu", spirite_count);
     updateText(renderer, font, &pm->fps_text, fps_line, pm->color);
     updateText(renderer, font, &pm->frame_text, frame_line, pm->color);
@@ -73,7 +84,7 @@ void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, T
     updateText(renderer, font, &pm->spirite_count_text, spirite_line, pm->color);
 }
 
-void PerformanceMonitor_Draw(PerformanceMonitor* pm, SDL_Renderer* renderer)
+void PerformanceMonitor_Draw(const PerformanceMonitor* pm, SDL_Renderer* renderer)
 {
     DrawText(renderer, &pm->fps_text, 10, 10);
     DrawText(renderer, &pm->frame_text, 10, 40);
@@ -81,7 +92,7 @@ void PerformanceMonitor_Draw(PerformanceMonitor* pm, SDL_Renderer* renderer)
     DrawText(renderer, &pm->spirite_count_text, 10,100);
 }
 
-void PerformanceMonitor_Destroy(PerformanceMonitor* pm)
+void PerformanceMonitor_Destroy(const PerformanceMonitor* pm)
 {
     if (pm->fps_text.texture) SDL_DestroyTexture(pm->fps_text.texture);
     if (pm->frame_text.texture) SDL_DestroyTexture(pm->frame_text.texture);
