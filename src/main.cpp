@@ -96,6 +96,11 @@ int main(int argc, char* argv[]) {
     bool running = true;
     SDL_Event e;
 
+    constexpr int CELL_SIZE = DRAGAN_W * 2;
+    int grid_w = (SCREEN_WIDTH + CELL_SIZE - 1) / CELL_SIZE;
+    int grid_h = (SCREEN_HEIGHT + CELL_SIZE - 1) / CELL_SIZE;
+
+    std::vector<std::vector<size_t>> grid(grid_w * grid_h);
     while (running)
     {
         while (SDL_PollEvent(&e))
@@ -161,6 +166,54 @@ int main(int argc, char* argv[]) {
             {
                 s.y = SCREEN_HEIGHT - s.h;
                 s.vy = -fabsf(s.vy);
+            }
+        }
+
+        for (auto &cell : grid)
+            cell.clear();
+
+        // adding the spirits into the grid
+        size_t spirites_size = spirites.size();
+        for (size_t i = 0; i < spirites_size; ++i)
+        {
+            Spirite& s = spirites[i];
+            int x = s.x / CELL_SIZE;
+            int y = s.y / CELL_SIZE;
+            int index = y * grid_w + x;
+
+            if (index >= 0 && index < grid.size())
+                grid[index].push_back(i);
+        }
+
+        // spirite collision in the same grid
+        for (int y = 0; y < grid_h; ++y)
+        {
+            for (int x = 0; x < grid_w; ++x)
+            {
+                int index = y * grid_w + x;
+                auto& cell = grid[index];
+
+                size_t cell_size = cell.size();
+                for (size_t i = 0; i < cell_size; ++i)
+                {
+                    size_t a_index = cell[i];
+                    Spirite& a = spirites[a_index];
+
+                    for (size_t j = i + 1; j < cell_size; ++j)
+                    {
+                        size_t b_index = cell[j];
+                        Spirite &b = spirites[b_index];
+
+                        bool overlap =
+                            a.x < b.x + b.w &&
+                                a.x +a.w > b.x &&
+                                    a.y < b.y + b.h &&
+                                        a.y + a.h > b.y;
+
+                        if (overlap)
+                            std::swap(a.vx, b.vx), std::swap(a.vy, b.vy);
+                    }
+                }
             }
         }
 
