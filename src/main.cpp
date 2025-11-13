@@ -10,8 +10,8 @@
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
-#define DRAGAN_W (SCREEN_WIDTH / 50.0f)
-#define DRAGAN_H (SCREEN_HEIGHT / 50.0f)
+#define DRAGAN_W (SCREEN_WIDTH / (float)50.0)
+#define DRAGAN_H (SCREEN_HEIGHT / (float)50.0)
 
 
 static float rand_float(float a, float b)
