@@ -6,7 +6,7 @@
 #include <fstream>
 #include "PerformanceMonitor.h"
 
-static void updateText(SDL_Renderer* renderer, TTF_Font* font, Text* text, const char* new_text, SDL_Color color)
+static void updateText(SDL_Renderer* renderer, TTF_Font* font, Text* text, const char* new_text, const SDL_Color color)
 {
     if (!new_text || strlen(new_text) == 0)
         return;

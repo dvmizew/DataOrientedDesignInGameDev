@@ -13,7 +13,6 @@
 #define DRAGAN_W (SCREEN_WIDTH / (float)50.0)
 #define DRAGAN_H (SCREEN_HEIGHT / (float)50.0)
 
-
 static float rand_float(float a, const float b)
 {
     static std::mt19937 rng((unsigned)std::random_device{}());
@@ -93,6 +92,7 @@ int main(int argc, char* argv[]) {
 
     PerformanceMonitor perf;
     PerformanceMonitor_Init(&perf, renderer, font);
+
     bool running = true;
     SDL_Event e;
     Uint64 last_counter = SDL_GetPerformanceCounter();
