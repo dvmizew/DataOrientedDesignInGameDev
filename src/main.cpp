@@ -14,7 +14,7 @@
 #define DRAGAN_H (SCREEN_HEIGHT / (float)50.0)
 
 
-static float rand_float(float a, float b)
+static float rand_float(float a, const float b)
 {
     static std::mt19937 rng((unsigned)std::random_device{}());
     std::uniform_real_distribution<float> dist(a, b);

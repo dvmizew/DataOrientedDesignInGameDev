@@ -40,10 +40,11 @@ void SpriteManagerDOD::clearSprites()
 
 void SpriteManagerDOD::doubleSprites(const unsigned int max_count)
 {
-    unsigned int new_count = x.size() * 2;
+    const unsigned int x_size = x.size();
+    unsigned int new_count = x_size * 2;
     new_count = (new_count > max_count) ? max_count : new_count;
 
-    for (unsigned int i = x.size(); i < new_count; ++i)
+    for (unsigned int i = x_size; i < new_count; ++i)
     {
         const float angle = rand_float(0.0f, 2.0f * static_cast<float>(M_PI));
         constexpr float speed = 300.0f;
@@ -58,9 +59,10 @@ void SpriteManagerDOD::doubleSprites(const unsigned int max_count)
 
 void SpriteManagerDOD::halveSprites()
 {
-    if (x.size() > 1)
+    const unsigned int x_size = x.size();
+    if (x_size > 1)
     {
-        const size_t new_size = x.size() / 2;
+        const size_t new_size = x_size / 2;
         x.resize(new_size);
         y.resize(new_size);
         vx.resize(new_size);

@@ -36,7 +36,8 @@ void SpriteManagerOOP::doubleSprites(const float sprite_w, const float sprite_h,
     unsigned int new_count = sprites.size() * 2;
     new_count = (new_count > max_count) ? max_count : new_count;
 
-    for (unsigned int i = sprites.size(); i < new_count; ++i)
+    const unsigned int sprites_size = sprites.size();
+    for (unsigned int i = sprites_size; i < new_count; ++i)
     {
         const float angle = rand_float(0.0f, 2.0f * static_cast<float>(M_PI));
         constexpr float speed = 300.0f;
@@ -54,7 +55,7 @@ void SpriteManagerOOP::halveSprites()
 {
     if (sprites.size() > 1)
     {
-        size_t new_size = sprites.size() / 2;
+        const size_t new_size = sprites.size() / 2;
         sprites.erase(sprites.begin() + new_size, sprites.end());
     }
 }
@@ -91,7 +92,8 @@ void SpriteManagerOOP::update(const float dt)
     for (auto& cell : grid)
         cell.clear();
 
-    for (size_t i = 0; i < sprites.size(); ++i)
+    const size_t sprites_size = sprites.size();
+    for (size_t i = 0; i < sprites_size; ++i)
     {
         const Sprite& s = sprites[i];
         const int gx = static_cast<int>(s.x) / cell_size;
@@ -109,17 +111,18 @@ void SpriteManagerOOP::update(const float dt)
             const int index = y * grid_w + x;
             auto& cell = grid[index];
 
-            for (size_t i = 0; i < cell.size(); ++i)
+            const size_t cell_vec_size = cell.size();
+            for (size_t i = 0; i < cell_vec_size; ++i)
             {
                 const size_t a_index = cell[i];
                 Sprite& a = sprites[a_index];
 
                 for (size_t j = i + 1; j < cell.size(); ++j)
                 {
-                    size_t b_index = cell[j];
+                    const size_t b_index = cell[j];
                     Sprite& b = sprites[b_index];
 
-                    bool overlap =
+                    const bool overlap =
                         a.x < b.x + b.w &&
                         a.x + a.w > b.x &&
                         a.y < b.y + b.h &&
