@@ -38,3 +38,7 @@ target_link_libraries(DataOrientedDesignInGameDev PRIVATE
     SDL3::SDL3
     SDL3_image::SDL3_image SDL3_ttf::SDL3_ttf
 )
+
+if (WIN32)
+    target_link_libraries(DataOrientedDesignInGameDev PRIVATE psapi)
+endif()

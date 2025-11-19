@@ -6,6 +6,15 @@
 #include <fstream>
 #include "PerformanceMonitor.h"
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <psapi.h>
+#endif
+
 static void updateText(SDL_Renderer* renderer, TTF_Font* font, Text* text, const char* new_text, const SDL_Color color)
 {
     if (!new_text || strlen(new_text) == 0)
@@ -42,6 +51,13 @@ size_t getMemoryMB()
     {
         if (line.substr(0,6) == "VmRSS:")
             return std::stoul(line.substr(6)) / 1024;
+    }
+#elif defined(_WIN32)
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc)))
+    {
+        const size_t rss_bytes = static_cast<size_t>(pmc.WorkingSetSize);
+        return rss_bytes / (1024 * 1024);
     }
 #endif
     return 0;
