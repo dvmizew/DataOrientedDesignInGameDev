@@ -30,6 +30,39 @@ For other platforms (macOS, Windows), see the detailed instructions below.
 
 ---
 
+**SDL3, SDL3_image, SDL3_ttf as git submodules (optional)**
+
+The project vendors SDL through submodules located in:
+- `external/SDL3`
+- `external/SDL3_image`
+- `external/SDL3_ttf`
+
+By default the CMake options below are ON and will build the vendored sources:
+- `USE_SUBMODULE_SDL3` (default ON)
+- `USE_SUBMODULE_SDL3_IMAGE` (default ON)
+- `USE_SUBMODULE_SDL3_TTF` (default ON)
+- `SDL_BUILD_SHARED` (default ON) → build shared SDL libraries. Set to OFF to build static.
+
+If you prefer using system-installed packages (e.g. via your package manager or vcpkg), disable these options when configuring:
+
+```bash
+cmake -DUSE_SUBMODULE_SDL3=OFF -DUSE_SUBMODULE_SDL3_IMAGE=OFF -DUSE_SUBMODULE_SDL3_TTF=OFF ..
+```
+
+When OFF, CMake will `find_package(SDL3 REQUIRED)` etc., so ensure your toolchain can locate the SDL3 config files.
+
+Common reasons to use submodules:
+- Consistent cross-platform version (same source on Windows/Linux/macOS).
+- Avoid needing development packages installed system-wide.
+
+Common reasons to use system packages:
+- Faster incremental builds (pre-built libs).
+- Integration with distro security updates.
+
+If submodule builds fail on Linux due to missing optional dependencies (e.g. XTEST), they are disabled automatically (`SDL_X11_XTEST=OFF`). Install additional packages if you need those features.
+
+---
+
 **ImGui as a git submodule**
 
 ImGui is included as a git submodule in this project (under `external/imgui`). Make sure you have initialized and updated submodules before building. If the submodule is missing, see the Quick Start section above.
@@ -39,15 +72,16 @@ ImGui is included as a git submodule in this project (under `external/imgui`). M
 What the project uses:
 - SDL3 (core library)
 - SDL3_image (loading PNG/JPG images)
+- SDL3_ttf (font rendering; requires FreeType)
 - ImGui (immediate mode GUI library; included as a git submodule in `external/imgui`)
 
-> **Note:** ImGui is included as a git submodule under `external/imgui`. You do not need to install ImGui separately or use a package manager for it, but you must initialize the submodule as shown above.
+> **Note:** All of these can be built from source via submodules (default) or you can disable the submodules and rely on system-installed packages.
 
 Important files:
 - `CMakeLists.txt` (project build configuration)
 - `src/` (source code)
 - `assets/` (image assets)
-- `external/` (external dependencies, e.g. ImGui)
+- `external/` (external dependencies, e.g. ImGui, SDL3 family)
 
 ---
 
@@ -69,11 +103,11 @@ cmake --build . --config Release
 2) Platform-specific instructions
 
 Linux (Debian / Ubuntu)
-- Install dependencies:
+- Install dependencies (if NOT using submodules for SDL):
 
 ```bash
 sudo apt update
-sudo apt install build-essential cmake libsdl3-dev libsdl3-image-dev
+sudo apt install build-essential cmake libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev
 ```
 
 - Build:
@@ -91,68 +125,35 @@ cmake --build . -- -j$(nproc)
 ```
 
 Linux (Fedora)
-- Install dependencies:
+- Install dependencies (if not using submodules):
 
 ```bash
-sudo dnf install @development-tools cmake SDL3-devel SDL3_image-devel
+sudo dnf install @development-tools cmake SDL3-devel SDL3_image-devel SDL3_ttf-devel
 ```
 
-- Build & run: use the same CMake steps shown above.
-
 Linux (Arch / Manjaro)
-- Install dependencies:
+- Install dependencies (if not using submodules):
 
 ```bash
 sudo pacman -Syu
-sudo pacman -S base-devel cmake sdl3 sdl3_image
+sudo pacman -S base-devel cmake sdl3 sdl3_image sdl3_ttf
 ```
 
-- Build & run: same CMake steps.
-
 macOS (Homebrew)
-- Make sure Xcode Command Line Tools are installed (`xcode-select --install`).
-- Install SDL3 and SDL3_image with Homebrew:
+- Install dependencies (if not using submodules):
 
 ```bash
 brew update
-brew install sdl3 sdl3_image cmake
-```
-
-- Build:
-
-```bash
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-cmake --build . --config Release
-```
-
-- Run (from `build`):
-
-```bash
-./DataOrientedDesignInGameDev
+brew install sdl3 sdl3_image sdl3_ttf cmake
 ```
 
 Windows (MSYS2 / MinGW-w64)
-- Download and install MSYS2: https://www.msys2.org/
-- Open the "MSYS2 MinGW 64-bit" shell (for 64-bit builds). Then:
+- Install dependencies (if not using submodules):
 
 ```bash
 pacman -Syu
-pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-sdl3 mingw-w64-x86_64-sdl3_image
-```
-
-- Build (inside the MinGW64 shell):
-
-```bash
-mkdir -p build && cd build
-cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release ..
-cmake --build . --config Release
-```
-
-- Run (from `build`):
-
-```bash
-./DataOrientedDesignInGameDev.exe
+pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake \
+  mingw-w64-x86_64-sdl3 mingw-w64-x86_64-sdl3_image mingw-w64-x86_64-sdl3_ttf
 ```
 
 Windows (vcpkg + Visual Studio / CMake)
@@ -161,62 +162,85 @@ Windows (vcpkg + Visual Studio / CMake)
 ```bash
 git clone https://github.com/microsoft/vcpkg.git
 ./vcpkg/bootstrap-vcpkg.sh
-./vcpkg/vcpkg install sdl3 sdl3-image
+./vcpkg/vcpkg install sdl3 sdl3-image sdl3-ttf
 ```
 
-- Integrate vcpkg with CMake (option 1: pass the toolchain file):
+---
+
+3) Toggle between submodule and system SDL
+
+Example: use system SDL but keep SDL_image/SDL_ttf submodules:
 
 ```bash
+cmake -DUSE_SUBMODULE_SDL3=OFF -DUSE_SUBMODULE_SDL3_IMAGE=ON -DUSE_SUBMODULE_SDL3_TTF=ON ..
+```
+
+Example: use only system packages:
+
+```bash
+cmake -DUSE_SUBMODULE_SDL3=OFF -DUSE_SUBMODULE_SDL3_IMAGE=OFF -DUSE_SUBMODULE_SDL3_TTF=OFF ..
+```
+
+Example: build static vendored SDL:
+
+```bash
+cmake -DSDL_BUILD_SHARED=OFF ..
+```
+
+After flipping these options, if you see cache conflicts, do a clean configure:
+
+```bash
+rm -rf build
 mkdir build && cd build
-cmake -DCMAKE_TOOLCHAIN_FILE=/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake ..
-cmake --build .
+cmake ..
 ```
 
-- Or use Visual Studio integration: `./vcpkg integrate install` and build from Visual Studio or use the Visual Studio CMake generator.
-
-Notes for Windows:
-- Use the appropriate shell (MinGW vs Visual Studio) depending on which packages/toolchain you installed.
-- If using MSYS2/MinGW, use the `MinGW Makefiles` or Ninja generator.
-
 ---
 
-3) Common problems and troubleshooting
-- "SDL.h: No such file or directory" → the development packages are not installed or CMake cannot find SDL3. Verify `libsdl3-dev` / `SDL3-devel` / `sdl3` are installed.
+4) Common problems and troubleshooting
+- "external/SDL3 not found" → submodules not initialized; run `git submodule update --init --recursive`.
+- Missing X11 optional dependencies (e.g. XTEST) → features are disabled automatically; install `libxtst-dev` if you need them and reconfigure.
+- Font rendering issues → ensure `SDL3_ttf` built or installed; check that the font file path is correct.
 - Asset path issues → run the executable from the build directory or copy `assets/` into the build directory.
-- If CMake cannot find SDL3, make sure your CMake version is recent enough (project requires at least 3.10). You can also set `CMAKE_PREFIX_PATH` to the SDL3 installation prefix.
+- Switching between system and submodule builds → clean your build directory to avoid stale cache variables.
 
 ---
 
-4) Quick copy & paste examples
+5) Quick copy & paste examples
 
-Linux (Ubuntu):
+Linux (Ubuntu, submodules ON):
 
 ```bash
-sudo apt update
-sudo apt install build-essential cmake libsdl3-dev libsdl3-image-dev
-mkdir -p build && cd build
+git clone --recursive https://github.com/dvmizew/DataOrientedDesignInGameDev.git
+cd DataOrientedDesignInGameDev
+mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build . -- -j$(nproc)
 ./DataOrientedDesignInGameDev
 ```
 
-macOS (Homebrew):
+macOS (Homebrew, system SDL):
 
 ```bash
-brew install cmake sdl3 sdl3_image
-mkdir -p build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
+brew install cmake sdl3 sdl3_image sdl3_ttf
+git clone https://github.com/dvmizew/DataOrientedDesignInGameDev.git
+cd DataOrientedDesignInGameDev
+mkdir build && cd build
+cmake -DUSE_SUBMODULE_SDL3=OFF -DUSE_SUBMODULE_SDL3_IMAGE=OFF -DUSE_SUBMODULE_SDL3_TTF=OFF -DCMAKE_BUILD_TYPE=Release ..
 cmake --build . --config Release
 ./DataOrientedDesignInGameDev
 ```
 
-Windows (MSYS2 MinGW64):
+Windows (MSYS2, submodules OFF):
 
 ```bash
 pacman -Syu
-pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-sdl3 mingw-w64-x86_64-sdl3_image
-mkdir -p build && cd build
-cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release ..
+pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake \
+  mingw-w64-x86_64-sdl3 mingw-w64-x86_64-sdl3_image mingw-w64-x86_64-sdl3_ttf
+git clone https://github.com/dvmizew/DataOrientedDesignInGameDev.git
+cd DataOrientedDesignInGameDev
+mkdir build && cd build
+cmake -G "MinGW Makefiles" -DUSE_SUBMODULE_SDL3=OFF -DUSE_SUBMODULE_SDL3_IMAGE=OFF -DUSE_SUBMODULE_SDL3_TTF=OFF -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ./DataOrientedDesignInGameDev.exe
 ```
