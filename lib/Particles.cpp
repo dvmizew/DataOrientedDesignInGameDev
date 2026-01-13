@@ -36,8 +36,8 @@ void Particles::doubleSprites(const size_t max_count)
         const float angle = randFloat(0.0f, 2.0f * static_cast<float>(M_PI));
         constexpr float speed = 300.0f;
         addSprite(
-            randFloat(0, static_cast<float>(screen_width) - w),
-            randFloat(0, static_cast<float>(screen_height) - h),
+            randFloat(0.0f, static_cast<float>(screen_width) - w),
+            randFloat(0.0f, static_cast<float>(screen_height) - h),
             cosf(angle) * speed,
             sinf(angle) * speed
         );
@@ -98,6 +98,8 @@ void Particles::update(const float dt)
     {
         const int gx = static_cast<int>(x[i]) / cell_size;
         const int gy = static_cast<int>(y[i]) / cell_size;
+        if (gx < 0 || gx >= grid_w || gy < 0 || gy >= grid_h)
+            continue;
         const int index = gy * grid_w + gx;
 
         if (index >= 0 && index < static_cast<int>(grid.size()))

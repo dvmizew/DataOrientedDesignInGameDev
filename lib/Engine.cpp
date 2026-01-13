@@ -1,7 +1,6 @@
 #include "Engine.h"
 #include <SDL3_image/SDL_image.h>
 #include <iostream>
-#include <cmath>
 
 GameEngine::GameEngine(const int width, const int height, const char* title)
     : window(nullptr), renderer(nullptr), font(nullptr),
@@ -91,7 +90,7 @@ void GameEngine::processInput() {
         }
     }
 
-    if (input.keys[SDLK_ESCAPE]) {
+    if (input.keys.count(SDLK_ESCAPE) && input.keys.at(SDLK_ESCAPE)) {
         input.quit = true;
         running = false;
     }

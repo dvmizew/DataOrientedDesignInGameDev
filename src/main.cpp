@@ -60,7 +60,7 @@ public:
                                           60.0f * static_cast<float>(M_PI) / 180.0f);
             constexpr float speed = 500.0f;
             const float bx = screenW() / 2.0f - bs / 2.0f;
-            const float by = screenH() / 2.0f - bs / 2.0f + i * 5.0f;
+            const float by = screenH() / 2.0f - bs / 2.0f + static_cast<float>(i) * 5.0f;
             const EntityID b = createBall(ecsWorld, bx, by,
                                           std::cos(angle) * speed, std::sin(angle) * speed, bs);
             if (auto* r = ecsWorld.getComponent<Renderable>(b)) r->textureID = 0;
@@ -108,8 +108,6 @@ protected:
                 if (inp.keys.count(SDLK_D) && inp.keys.at(SDLK_D)) vx = p->speed;
             }
             pt->vx = vx;
-             // keep paddle in screen
-             pt->x = std::max(0.0f, std::min(pt->x, screenW() - pt->w));
         }
 
         // move entities
@@ -211,7 +209,7 @@ protected:
         // paddle
         if (const auto* pt = ecsWorld.getComponent<Transform>(paddle)) {
             SDL_SetRenderDrawColor(getRenderer(), 255, 255, 255, 255);
-            SDL_FRect r{pt->x, pt->y, pt->w, pt->h};
+            const SDL_FRect r{pt->x, pt->y, pt->w, pt->h};
             SDL_RenderFillRect(getRenderer(), &r);
         }
         // balls
