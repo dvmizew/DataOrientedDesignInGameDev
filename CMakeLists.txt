@@ -4,77 +4,55 @@ project(DataOrientedDesignInGameDev)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# System packages first, if not then clone SDL from repo
-find_package(SDL3 QUIET)
-if (NOT SDL3_FOUND)
-    message(STATUS "SDL3 not found in system, using vendored submodule")
-    if (EXISTS ${CMAKE_SOURCE_DIR}/external/SDL/CMakeLists.txt)
-        set(SDL_TEST OFF CACHE BOOL "Disable SDL tests" FORCE)
-        set(SDL_SHARED ON CACHE BOOL "Build shared SDL library" FORCE)
-        set(SDL_STATIC OFF CACHE BOOL "Build static SDL library" FORCE)
-        set(SDL_X11_XTEST OFF CACHE BOOL "Disable X11 XTEST support" FORCE)
-        add_subdirectory(external/SDL)
-    else()
-        message(FATAL_ERROR "SDL3 not found in system and submodule not initialized. Run: git submodule update --init --recursive")
+macro(find_or_build_sdl3_package PACKAGE_NAME SUBMODULE_PATH)
+    # Try to find from system/vcpkg
+    find_package(${PACKAGE_NAME} QUIET CONFIG)
+    if (NOT ${PACKAGE_NAME}_FOUND)
+        find_package(${PACKAGE_NAME} QUIET)
     endif()
-else()
-    message(STATUS "Using system SDL3")
-endif()
 
-find_package(SDL3_image QUIET)
-if (NOT SDL3_image_FOUND)
-    message(STATUS "SDL3_image not found in system, using vendored submodule")
-    if (EXISTS ${CMAKE_SOURCE_DIR}/external/SDL_image/CMakeLists.txt)
-        set(SDLIMAGE_AVIF OFF CACHE BOOL "Disable AVIF support" FORCE)
-        set(SDLIMAGE_JXL OFF CACHE BOOL "Disable JPEG-XL support" FORCE)
-        set(SDLIMAGE_TESTS OFF CACHE BOOL "Disable SDL_image tests" FORCE)
-        add_subdirectory(external/SDL_image)
+    # If not found, try submodules
+    if (NOT ${PACKAGE_NAME}_FOUND)
+        if (EXISTS ${CMAKE_SOURCE_DIR}/${SUBMODULE_PATH}/CMakeLists.txt)
+            message(STATUS "${PACKAGE_NAME} not found in system, building from submodule")
+
+            # Configure submodule options
+            if (${PACKAGE_NAME} STREQUAL "SDL3")
+                set(SDL_TEST OFF CACHE BOOL "Disable SDL tests" FORCE)
+                set(SDL_SHARED ON CACHE BOOL "Build shared SDL library" FORCE)
+                set(SDL_STATIC OFF CACHE BOOL "Build static SDL library" FORCE)
+                set(SDL_X11_XTEST OFF CACHE BOOL "Disable X11 XTEST support" FORCE)
+            elseif (${PACKAGE_NAME} STREQUAL "SDL3_image")
+                set(SDLIMAGE_AVIF OFF CACHE BOOL "Disable AVIF support" FORCE)
+                set(SDLIMAGE_JXL OFF CACHE BOOL "Disable JPEG-XL support" FORCE)
+                set(SDLIMAGE_TESTS OFF CACHE BOOL "Disable SDL_image tests" FORCE)
+            elseif (${PACKAGE_NAME} STREQUAL "SDL3_ttf")
+                set(SDLTTF_VENDORED OFF CACHE BOOL "Use system freetype/harfbuzz" FORCE)
+                set(SDLTTF_PLUTOSVG OFF CACHE BOOL "Disable plutosvg" FORCE)
+                set(SDLTTF_SAMPLES OFF CACHE BOOL "Disable SDL3_ttf samples" FORCE)
+            endif()
+
+            add_subdirectory(${SUBMODULE_PATH})
+        else()
+            message(FATAL_ERROR
+                "${PACKAGE_NAME} not found!\n"
+                "Options:\n"
+                "  1. Install via package manager:\n"
+                "     Linux: sudo apt install lib${PACKAGE_NAME}-dev\n"
+                "     Windows: vcpkg install ${PACKAGE_NAME}:x64-windows\n"
+                "  2. Initialize submodules: git submodule update --init --recursive\n")
+        endif()
     else()
-        message(FATAL_ERROR "SDL3_image not found in system and submodule not initialized. Run: git submodule update --init --recursive")
+        message(STATUS "Using system ${PACKAGE_NAME}")
     endif()
-else()
-    message(STATUS "Using system SDL3_image")
-endif()
+endmacro()
 
-find_package(SDL3_ttf QUIET)
-if (NOT SDL3_ttf_FOUND)
-    message(STATUS "SDL3_ttf not found in system, using vendored submodule")
-    if (EXISTS ${CMAKE_SOURCE_DIR}/external/SDL_ttf/CMakeLists.txt)
-        set(SDLTTF_VENDORED OFF CACHE BOOL "Use system freetype/harfbuzz" FORCE)
-        set(SDLTTF_PLUTOSVG OFF CACHE BOOL "Disable plutosvg" FORCE)
-        set(SDLTTF_SAMPLES OFF CACHE BOOL "Disable SDL3_ttf samples" FORCE)
-        add_subdirectory(external/SDL_ttf)
-    else()
-        message(FATAL_ERROR "SDL3_ttf not found in system and submodule not initialized. Run: git submodule update --init --recursive")
-    endif()
-else()
-    message(STATUS "Using system SDL3_ttf")
-endif()
+# Find or build SDL3 packages
+find_or_build_sdl3_package(SDL3 external/SDL)
+find_or_build_sdl3_package(SDL3_image external/SDL_image)
+find_or_build_sdl3_package(SDL3_ttf external/SDL_ttf)
 
-add_library(imgui
-        external/imgui/imgui.cpp
-        external/imgui/imgui_draw.cpp
-        external/imgui/imgui_widgets.cpp
-        external/imgui/imgui_tables.cpp
-        external/imgui/imgui_demo.cpp
-        external/imgui/backends/imgui_impl_sdl3.cpp
-        external/imgui/backends/imgui_impl_opengl3.cpp
-)
-
-target_include_directories(imgui PUBLIC
-    external/imgui
-    external/imgui/backends
-)
-
-if (TARGET SDL3::SDL3-shared)
-    target_link_libraries(imgui PUBLIC SDL3::SDL3-shared)
-elseif (TARGET SDL3::SDL3)
-    target_link_libraries(imgui PUBLIC SDL3::SDL3)
-else()
-    target_link_libraries(imgui PUBLIC SDL3-shared)
-    target_include_directories(imgui PUBLIC ${CMAKE_SOURCE_DIR}/external/SDL/include)
-endif()
-
+# Build executable
 add_executable(DataOrientedDesignInGameDev
         src/main.cpp
         lib/PerformanceMonitor.cpp
@@ -88,32 +66,20 @@ add_executable(DataOrientedDesignInGameDev
         lib/Utils.h
 )
 
-target_link_libraries(DataOrientedDesignInGameDev PRIVATE imgui)
+# Link SDL3 libraries (handles all target name variations)
+foreach(LIB SDL3 SDL3_image SDL3_ttf)
+    if (TARGET ${LIB}::${LIB}-shared)
+        target_link_libraries(DataOrientedDesignInGameDev PRIVATE ${LIB}::${LIB}-shared)
+    elseif (TARGET ${LIB}::${LIB})
+        target_link_libraries(DataOrientedDesignInGameDev PRIVATE ${LIB}::${LIB})
+    elseif (TARGET ${LIB}-shared)
+        target_link_libraries(DataOrientedDesignInGameDev PRIVATE ${LIB}-shared)
+    elseif (TARGET ${LIB})
+        target_link_libraries(DataOrientedDesignInGameDev PRIVATE ${LIB})
+    endif()
+endforeach()
 
-if (TARGET SDL3::SDL3-shared)
-    target_link_libraries(DataOrientedDesignInGameDev PRIVATE SDL3::SDL3-shared)
-elseif (TARGET SDL3::SDL3)
-    target_link_libraries(DataOrientedDesignInGameDev PRIVATE SDL3::SDL3)
-else()
-    target_link_libraries(DataOrientedDesignInGameDev PRIVATE SDL3-shared)
-endif()
-
-if (TARGET SDL3_image::SDL3_image-shared)
-    target_link_libraries(DataOrientedDesignInGameDev PRIVATE SDL3_image::SDL3_image-shared)
-elseif (TARGET SDL3_image::SDL3_image)
-    target_link_libraries(DataOrientedDesignInGameDev PRIVATE SDL3_image::SDL3_image)
-else()
-    target_link_libraries(DataOrientedDesignInGameDev PRIVATE SDL3_image-shared)
-endif()
-
-if (TARGET SDL3_ttf::SDL3_ttf-shared)
-    target_link_libraries(DataOrientedDesignInGameDev PRIVATE SDL3_ttf::SDL3_ttf-shared)
-elseif (TARGET SDL3_ttf::SDL3_ttf)
-    target_link_libraries(DataOrientedDesignInGameDev PRIVATE SDL3_ttf::SDL3_ttf)
-else()
-    target_link_libraries(DataOrientedDesignInGameDev PRIVATE SDL3_ttf-shared)
-endif()
-
+# Windows-specific libraries
 if (WIN32)
     target_link_libraries(DataOrientedDesignInGameDev PRIVATE psapi)
 endif()
