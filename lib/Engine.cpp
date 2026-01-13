@@ -70,17 +70,18 @@ int GameEngine::loadTexture(const char* path) {
         return -1;
     }
     textures.push_back(texture);
-    return static_cast<int>(textures.size()) - 1;
+    return static_cast<int>(textures.size()) - 1; // return texture ID
 }
 
 void GameEngine::processInput() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
+        // ESC key / window close / OS decides to close it etc.
         if (e.type == SDL_EVENT_QUIT) {
             input.quit = true;
             running = false;
         }
-
+        // Key down/up events
         if (e.type == SDL_EVENT_KEY_DOWN) {
             input.keys[e.key.key] = true;
         }
@@ -89,7 +90,7 @@ void GameEngine::processInput() {
             input.keys[e.key.key] = false;
         }
     }
-
+    // Check for ESC key
     if (input.keys.count(SDLK_ESCAPE) && input.keys.at(SDLK_ESCAPE)) {
         input.quit = true;
         running = false;
@@ -101,7 +102,7 @@ void GameEngine::update(const float dt) {
 }
 
 void GameEngine::render() {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // black background
     SDL_RenderClear(renderer);
 
     onRender();

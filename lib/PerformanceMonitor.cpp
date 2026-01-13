@@ -38,7 +38,7 @@ static void updateText(SDL_Renderer* renderer, TTF_Font* font, Text* text, const
     SDL_DestroySurface(surface);
 }
 
-static void DrawText(SDL_Renderer* renderer, const Text* textObj, int x, const int y)
+static void DrawText(SDL_Renderer* renderer, const Text* textObj, const int x, const int y)
 {
     if (!renderer || !textObj || !textObj->texture) return;
     const SDL_FRect dst = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(textObj->w), static_cast<float>(textObj->h)};

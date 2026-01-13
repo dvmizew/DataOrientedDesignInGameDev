@@ -61,30 +61,32 @@ void Particles::update(const float dt)
 {
     const size_t count = x.size();
 
+    // move particles
     for (size_t i = 0; i < count; ++i)
     {
         x[i] += vx[i] * dt;
         y[i] += vy[i] * dt;
     }
 
+    // screen bounds collision
     for (size_t i = 0; i < count; ++i)
     {
-        if (x[i] <= 0.0f)
+        if (x[i] <= 0.0f) // left
         {
             x[i] = 0.0f;
             vx[i] = fabsf(vx[i]);
         }
-        if (y[i] <= 0.0f)
+        if (y[i] <= 0.0f) // top
         {
             y[i] = 0.0f;
             vy[i] = fabsf(vy[i]);
         }
-        if (x[i] + w >= static_cast<float>(screen_width))
+        if (x[i] + w >= static_cast<float>(screen_width)) // right
         {
             x[i] = static_cast<float>(screen_width) - w;
             vx[i] = -fabsf(vx[i]);
         }
-        if (y[i] + h >= static_cast<float>(screen_height))
+        if (y[i] + h >= static_cast<float>(screen_height)) // bottom
         {
             y[i] = static_cast<float>(screen_height) - h;
             vy[i] = -fabsf(vy[i]);
@@ -94,10 +96,12 @@ void Particles::update(const float dt)
     for (auto& cell : grid)
         cell.clear();
 
+    // populate grid cells
     for (size_t i = 0; i < count; ++i)
     {
         const int gx = static_cast<int>(x[i]) / cell_size;
         const int gy = static_cast<int>(y[i]) / cell_size;
+        // out of bounds check
         if (gx < 0 || gx >= grid_w || gy < 0 || gy >= grid_h)
             continue;
         const int index = gy * grid_w + gx;
@@ -108,9 +112,10 @@ void Particles::update(const float dt)
 
     for (auto& cell : grid)
     {
-        constexpr size_t kCollisionCapPerCell = 32;
+        constexpr size_t kCollisionCapPerCell = 32; // limit for performance
         if (cell.empty()) continue;
 
+        // check collisions within cell
         const size_t localCount = std::min(cell.size(), kCollisionCapPerCell);
         for (size_t i = 0; i < localCount; ++i)
         {
@@ -119,7 +124,7 @@ void Particles::update(const float dt)
             for (size_t j = i + 1; j < localCount; ++j)
             {
                 const size_t b = cell[j];
-
+                // AABB collision check
                 const bool overlap =
                     x[a] < x[b] + w &&
                     x[a] + w > x[b] &&
