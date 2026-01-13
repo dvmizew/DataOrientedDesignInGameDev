@@ -79,10 +79,13 @@ add_executable(DataOrientedDesignInGameDev
         src/main.cpp
         lib/PerformanceMonitor.cpp
         lib/PerformanceMonitor.h
-        lib/SpriteOOP.cpp
-        lib/SpriteOOP.h
-        lib/SpriteDOD.cpp
-        lib/SpriteDOD.h
+        lib/Particles.cpp
+        lib/Particles.h
+        lib/Engine.cpp
+        lib/Engine.h
+        lib/ECS.h
+        lib/Entity.h
+        lib/Utils.h
 )
 
 target_link_libraries(DataOrientedDesignInGameDev PRIVATE imgui)

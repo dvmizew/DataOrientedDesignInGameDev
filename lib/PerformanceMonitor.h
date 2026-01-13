@@ -30,6 +30,7 @@ typedef struct
     Text mem_text;
     Text sprite_count_text;
     SDL_Color color;
+    size_t monitored_count;
 }PerformanceMonitor;
 
 size_t getMemoryMB();

@@ -69,6 +69,7 @@ void PerformanceMonitor_Init(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF
     pm->freq = SDL_GetPerformanceFrequency();
     pm->last_counter = SDL_GetPerformanceCounter();
     pm->color = (SDL_Color){255, 255, 255, 255};
+    pm->monitored_count = 0;
 }
 
 void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF_Font* font, size_t sprite_count)
@@ -87,13 +88,15 @@ void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, T
     pm->avg_fps = sum / FPS_SAMPLES;
     pm->frame_time_ms = static_cast<float>(dt * 1000.0);
 
+    const size_t final_count = (pm->monitored_count > 0) ? pm->monitored_count : sprite_count;
+
     char fps_line[64], frame_line[64], mem_line[64], sprite_line[64];
     snprintf(fps_line, sizeof(fps_line), "FPS: %.1f", pm->avg_fps);
     snprintf(frame_line, sizeof(frame_line), "Frame: %.3f ms", pm->frame_time_ms);
 
     const size_t mem_mb = getMemoryMB();
     snprintf(mem_line, sizeof(mem_line), "Memory: %zu MB", mem_mb);
-    snprintf(sprite_line, sizeof(sprite_line), "Sprites: %zu", sprite_count);
+    snprintf(sprite_line, sizeof(sprite_line), "Sprites: %zu", final_count);
     updateText(renderer, font, &pm->fps_text, fps_line, pm->color);
     updateText(renderer, font, &pm->frame_text, frame_line, pm->color);
     updateText(renderer, font, &pm->mem_text, mem_line, pm->color);
