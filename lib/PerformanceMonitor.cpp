@@ -21,7 +21,8 @@ static void updateText(SDL_Renderer* renderer, TTF_Font* font, Text* text, const
         return;
     if (strcmp(text->last_text, new_text) == 0)
         return;
-    strcpy(text->last_text, new_text);
+    strncpy(text->last_text, new_text, sizeof(text->last_text) - 1);
+    text->last_text[sizeof(text->last_text) - 1] = '\0';
     if (text->texture)
         SDL_DestroyTexture(text->texture);
 
@@ -30,14 +31,16 @@ static void updateText(SDL_Renderer* renderer, TTF_Font* font, Text* text, const
         return;
 
     text->texture = SDL_CreateTextureFromSurface(renderer, surface);
-    text->w = surface->w;
-    text->h = surface->h;
+    if (text->texture) {
+        text->w = surface->w;
+        text->h = surface->h;
+    }
     SDL_DestroySurface(surface);
 }
 
 static void DrawText(SDL_Renderer* renderer, const Text* textObj, int x, const int y)
 {
-    if (!textObj->texture) return;
+    if (!renderer || !textObj || !textObj->texture) return;
     const SDL_FRect dst = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(textObj->w), static_cast<float>(textObj->h)};
     SDL_RenderTexture(renderer, textObj->texture, nullptr, &dst);
 }
@@ -46,11 +49,19 @@ size_t getMemoryMB()
 {
 #ifdef __linux__
     std::ifstream status("/proc/self/status");
+    if (!status.is_open())
+        return 0;
     std::string line;
     while (std::getline(status, line))
     {
-        if (line.substr(0,6) == "VmRSS:")
-            return std::stoul(line.substr(6)) / 1024;
+        if (line.size() > 6 && line.substr(0, 6) == "VmRSS:") {
+            const std::string value_str = line.substr(6);
+            char* endptr = nullptr;
+            const long value = strtol(value_str.c_str(), &endptr, 10);
+            if (endptr != value_str.c_str() && value > 0) {
+                return static_cast<size_t>(value) / 1024;
+            }
+        }
     }
 #elif defined(_WIN32)
     PROCESS_MEMORY_COUNTERS_EX pmc;
@@ -69,6 +80,7 @@ void PerformanceMonitor_Init(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF
     pm->freq = SDL_GetPerformanceFrequency();
     pm->last_counter = SDL_GetPerformanceCounter();
     pm->color = (SDL_Color){255, 255, 255, 255};
+    pm->monitored_count = 0;
 }
 
 void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, TTF_Font* font, size_t sprite_count)
@@ -87,13 +99,15 @@ void PerformanceMonitor_Update(PerformanceMonitor* pm, SDL_Renderer* renderer, T
     pm->avg_fps = sum / FPS_SAMPLES;
     pm->frame_time_ms = static_cast<float>(dt * 1000.0);
 
+    const size_t final_count = (pm->monitored_count > 0) ? pm->monitored_count : sprite_count;
+
     char fps_line[64], frame_line[64], mem_line[64], sprite_line[64];
     snprintf(fps_line, sizeof(fps_line), "FPS: %.1f", pm->avg_fps);
     snprintf(frame_line, sizeof(frame_line), "Frame: %.3f ms", pm->frame_time_ms);
 
     const size_t mem_mb = getMemoryMB();
     snprintf(mem_line, sizeof(mem_line), "Memory: %zu MB", mem_mb);
-    snprintf(sprite_line, sizeof(sprite_line), "Sprites: %zu", sprite_count);
+    snprintf(sprite_line, sizeof(sprite_line), "Sprites: %zu", final_count);
     updateText(renderer, font, &pm->fps_text, fps_line, pm->color);
     updateText(renderer, font, &pm->frame_text, frame_line, pm->color);
     updateText(renderer, font, &pm->mem_text, mem_line, pm->color);
